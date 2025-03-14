@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons'
 import AyahDisplay from '../../components/quran/AyahDisplay'
 import RecitationRecorder from '../../components/quran/RecitationRecorder'
 import TajweedFeedback from '../../components/quran/TajweedFeedback'
+import AyahAudioPlayer from '../../components/quran/AyahAudioPlayer'
 
 // Contexts
 import { useQuran } from '../../contexts/QuranContext'
@@ -139,6 +140,13 @@ const ReciteScreen: React.FC<ReciteScreenProps> = ({ route, navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
+        {currentAyah && (
+          <AyahAudioPlayer
+            surahNumber={surahId}
+            ayahNumber={currentAyah.numberInSurah}
+          />
+        )}
+
         {/* Ayah Display Section */}
         <View style={styles.ayahsContainer}>
           {getAyahsToDisplay().map((ayah) => (

@@ -12,6 +12,10 @@ export interface Ayah {
   transliteration?: string // Latin transliteration of the ayah
   audioUrl?: string // URL to audio recitation of this ayah
   id?: string // Optional ID for database reference
+
+  // Add these new properties
+  surahId?: number // The ID of the surah this ayah belongs to
+  surahName?: string // The name of the surah this ayah belongs to
 }
 
 // Surah model
@@ -21,7 +25,7 @@ export interface Surah {
   englishName: string // English name of the surah
   englishNameTranslation: string // Translation of the surah name
   numberOfAyahs: number // Number of ayahs in this surah
-  revelationType: 'Meccan' | 'Medinan' // Whether revealed in Mecca or Medina
+  revelationType: 'Meccan' | 'Medinan' | 'Unknown' // Whether revealed in Mecca or Medina
   ayahs: Ayah[] // Array of ayahs in this surah
 }
 

@@ -10,7 +10,11 @@ import {
   RefreshControl,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { NavigationProp, useNavigation } from '@react-navigation/native'
+import {
+  NavigationProp,
+  useNavigation,
+  CompositeNavigationProp,
+} from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'
 import {
   AppTabParamList,
@@ -24,6 +28,10 @@ import { useQuran } from '../../contexts/QuranContext'
 
 // API Services
 import * as recitationApi from '../../api/recitation'
+
+//import custom hooks
+import { StackNavigationProp } from '@react-navigation/stack'
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs'
 
 // Types
 type RecitationStats = {
@@ -43,13 +51,19 @@ type RecitationStats = {
 }
 
 // Define a combined type for the navigation
-type CombinedNavigation = AppTabParamList & {
-  Memorize: { screen?: keyof MemorizationStackParamList; params?: any }
-  Progress: { screen?: keyof ProgressStackParamList } | undefined
-}
+// type CombinedNavigation = AppTabParamList & {
+//   Memorize: { screen?: keyof MemorizationStackParamList; params?: any }
+//   Progress: { screen?: keyof ProgressStackParamList } | undefined
+// }
+
+// Define a composite navigation type
+type HomeScreenNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<AppTabParamList, 'Home'>,
+  StackNavigationProp<MemorizationStackParamList>
+>
 
 const HomeScreen: React.FC = () => {
-  const navigation = useNavigation<NavigationProp<CombinedNavigation>>()
+  const navigation = useNavigation<HomeScreenNavigationProp>()
   const { user } = useAuth()
   const { surahs, isLoading: isSurahsLoading } = useQuran()
 
@@ -115,6 +129,13 @@ const HomeScreen: React.FC = () => {
   // Navigate to the progress screen
   const handleViewProgress = () => {
     ;(navigation.navigate as any)('Progress')
+  }
+  const goToQuranView = () => {
+    // Navigate to the Memorize tab first, then to the QuranView screen
+    navigation.navigate('Memorize', {
+      screen: 'QuranView',
+      params: { surahId: 1 },
+    })
   }
 
   return (
@@ -188,6 +209,10 @@ const HomeScreen: React.FC = () => {
           >
             <Ionicons name="stats-chart-outline" size={24} color="white" />
             <Text style={styles.actionButtonText}>View Progress</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={goToQuranView}>
+            <Ionicons name="book-outline" size={24} color="white" />
+            <Text style={styles.actionButtonText}>Mushaf View</Text>
           </TouchableOpacity>
         </View>
 

@@ -1,8 +1,15 @@
+// src/api/auth.ts
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
+// Import mock implementations
+import * as mockApi from './mockApi'
+
 // Define the base URL for the API
 const API_URL = 'https://api.yourquranapp.com'
+
+// Flag to use mock API instead of real API
+const USE_MOCK_API = true
 
 // Create an axios instance
 const api = axios.create({
@@ -29,6 +36,10 @@ api.interceptors.request.use(
 // Authentication API functions
 export const login = async (email: string, password: string) => {
   try {
+    if (USE_MOCK_API) {
+      return await mockApi.login(email, password)
+    }
+
     const response = await api.post('/auth/login', { email, password })
     return response.data
   } catch (error) {
@@ -43,6 +54,10 @@ export const register = async (
   password: string,
 ) => {
   try {
+    if (USE_MOCK_API) {
+      return await mockApi.register(name, email, password)
+    }
+
     const response = await api.post('/auth/register', { name, email, password })
     return response.data
   } catch (error) {
@@ -53,6 +68,10 @@ export const register = async (
 
 export const forgotPassword = async (email: string) => {
   try {
+    if (USE_MOCK_API) {
+      return await mockApi.forgotPassword(email)
+    }
+
     const response = await api.post('/auth/forgot-password', { email })
     return response.data
   } catch (error) {
@@ -63,6 +82,10 @@ export const forgotPassword = async (email: string) => {
 
 export const resetPassword = async (token: string, password: string) => {
   try {
+    if (USE_MOCK_API) {
+      return await mockApi.resetPassword(token, password)
+    }
+
     const response = await api.post('/auth/reset-password', { token, password })
     return response.data
   } catch (error) {
@@ -75,6 +98,13 @@ export const refreshToken = async () => {
   try {
     const refreshToken = await AsyncStorage.getItem('refreshToken')
     if (!refreshToken) throw new Error('No refresh token available')
+
+    if (USE_MOCK_API) {
+      // Mock implementation of token refresh
+      const newToken = 'mock-refreshed-token-' + Date.now()
+      await AsyncStorage.setItem('userToken', newToken)
+      return { token: newToken, refreshToken: refreshToken }
+    }
 
     const response = await api.post('/auth/refresh-token', { refreshToken })
 
@@ -94,6 +124,10 @@ export const verifyEmail = async (
   otpCode: string,
 ): Promise<any> => {
   try {
+    if (USE_MOCK_API) {
+      return await mockApi.verifyEmail(email, otpCode)
+    }
+
     const response = await api.post('/auth/verify-email', { email, otpCode })
     return response.data
   } catch (error) {
@@ -107,6 +141,10 @@ export const verifyResetCode = async (
   otpCode: string,
 ): Promise<any> => {
   try {
+    if (USE_MOCK_API) {
+      return await mockApi.verifyResetCode(email, otpCode)
+    }
+
     const response = await api.post('/auth/verify-reset-code', {
       email,
       otpCode,
@@ -120,6 +158,10 @@ export const verifyResetCode = async (
 
 export const resendVerificationCode = async (email: string): Promise<any> => {
   try {
+    if (USE_MOCK_API) {
+      return await mockApi.resendVerificationCode(email)
+    }
+
     const response = await api.post('/auth/resend-verification', { email })
     return response.data
   } catch (error) {

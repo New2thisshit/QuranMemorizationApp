@@ -1,20 +1,24 @@
-// In a new file like src/hooks/useAppNavigation.ts
-import { useNavigation } from '@react-navigation/native';
-import { CompositeNavigationProp } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { 
-  MemorizationStackParamList, 
+// src/hooks/useAppNavigation.ts
+import { useNavigation } from '@react-navigation/native'
+import { CompositeNavigationProp } from '@react-navigation/native'
+import { StackNavigationProp } from '@react-navigation/stack'
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs'
+import {
+  MemorizationStackParamList,
+  ProgressStackParamList,
   AppTabParamList,
-  ProgressStackParamList 
-} from '../types/navigation';
+  RootTabParamList,
+} from '../types/navigation'
 
-type AppNavigationProp = CompositeNavigationProp
-  StackNavigationProp<MemorizationStackParamList>,
-  StackNavigationProp<AppTabParamList & {
-    Progress: { screen?: keyof ProgressStackParamList; params?: any }
-  }>
-
+// Correct syntax for CompositeNavigationProp
+type AppNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<RootTabParamList>,
+  CompositeNavigationProp<
+    StackNavigationProp<MemorizationStackParamList>,
+    StackNavigationProp<ProgressStackParamList>
+  >
+>
 
 export const useAppNavigation = () => {
-  return useNavigation<AppNavigationProp>();
-};
+  return useNavigation<AppNavigationProp>()
+}

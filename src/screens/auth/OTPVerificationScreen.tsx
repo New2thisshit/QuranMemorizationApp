@@ -128,7 +128,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
           [
             {
               text: 'OK',
-              onPress: () => navigation.navigate('Auth'),
+              onPress: () => navigation.navigate('AuthMain'),
             },
           ],
         )

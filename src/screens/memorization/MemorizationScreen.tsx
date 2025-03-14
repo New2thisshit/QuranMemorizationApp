@@ -1,3 +1,4 @@
+// src/screens/memorization/MemorizationScreen.tsx
 import React, { useEffect, useState } from 'react'
 import {
   View,
@@ -11,13 +12,7 @@ import {
   useWindowDimensions,
   SafeAreaView,
 } from 'react-native'
-import { NavigationProp, useNavigation } from '@react-navigation/native'
-import { NavigationParams } from '../../types/navigation'
-
-import {
-  MemorizationStackParamList,
-  AppTabParamList,
-} from '../../types/navigation'
+import { useAppNavigation } from '../../hooks/useAppNavigation'
 import { Ionicons } from '@expo/vector-icons'
 
 // Contexts
@@ -28,7 +23,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import * as recitationApi from '../../api/recitation'
 
 // Types
-type SurahProgress = {
+interface SurahProgress {
   surahId: number
   surahName: string
   completionPercentage: number
@@ -37,16 +32,13 @@ type SurahProgress = {
   memorizedAyahs: number
 }
 
-type MemorizationSession = {
+interface MemorizationSession {
   surahId: number
   surahName: string
   ayahStart: number
   ayahEnd: number
   avgScore: number
   date: string
-}
-type CombinedNavigation = MemorizationStackParamList & {
-  Progress: { screen?: string; params?: any }
 }
 
 /**
@@ -56,10 +48,10 @@ type CombinedNavigation = MemorizationStackParamList & {
  * previously started surahs or start new ones.
  */
 const MemorizationScreen: React.FC = () => {
-  const navigation = useNavigation<NavigationProp<CombinedNavigation>>()
+  const navigation = useAppNavigation()
   const { width } = useWindowDimensions()
   const { user } = useAuth()
-  const { surahs, isLoading: isSurahsLoading } = useQuran()
+  const { surahs, isLoading: isSurahsLoading, fetchSurahs } = useQuran()
 
   const [userProgress, setUserProgress] = useState<SurahProgress[]>([])
   const [recentSessions, setRecentSessions] = useState<MemorizationSession[]>(
@@ -72,6 +64,13 @@ const MemorizationScreen: React.FC = () => {
     percentage: 0,
   })
 
+  // Ensure Quran data is loaded
+  useEffect(() => {
+    if (surahs.length === 0 && !isSurahsLoading) {
+      fetchSurahs()
+    }
+  }, [surahs, isSurahsLoading, fetchSurahs])
+
   // Load user data and recommendations on component mount
   useEffect(() => {
     const loadUserData = async () => {
@@ -79,26 +78,42 @@ const MemorizationScreen: React.FC = () => {
 
       setIsLoading(true)
       try {
-        // Fetch user progress data
-        const progress = await recitationApi.getRecitationStats()
+        // Fetch user progress data (with error handling)
+        let progress
+        try {
+          progress = await recitationApi.getRecitationStats()
+        } catch (error) {
+          console.error('Failed to fetch recitation stats:', error)
+          progress = {
+            totalAyahsMemorized: 0,
+            memorizedSurahs: [],
+            recentActivity: [],
+          }
+        }
 
         // Format surah progress data
-        const surahProgress: SurahProgress[] = progress.memorizedSurahs.map(
-          (surah: any) => ({
-            surahId: surah.surahId,
-            surahName: surah.surahName,
-            completionPercentage: surah.completionPercentage,
-            lastReview: surah.lastReview || 'Never',
-            totalAyahs: surah.totalAyahs,
-            memorizedAyahs: surah.ayahsMemorized,
-          }),
+        const surahProgress: SurahProgress[] = Array.isArray(
+          progress.memorizedSurahs,
         )
+          ? progress.memorizedSurahs.map((surah: any) => ({
+              surahId: surah.surahId,
+              surahName: surah.surahName,
+              completionPercentage: surah.completionPercentage,
+              lastReview: surah.lastReview || 'Never',
+              totalAyahs: surah.totalAyahs,
+              memorizedAyahs: surah.ayahsMemorized,
+            }))
+          : []
 
         // Sort by last review date (most recent first)
-        surahProgress.sort(
-          (a, b) =>
-            new Date(b.lastReview).getTime() - new Date(a.lastReview).getTime(),
-        )
+        surahProgress.sort((a, b) => {
+          // Handle 'Never' case
+          if (a.lastReview === 'Never') return 1
+          if (b.lastReview === 'Never') return -1
+          return (
+            new Date(b.lastReview).getTime() - new Date(a.lastReview).getTime()
+          )
+        })
 
         setUserProgress(surahProgress)
 
@@ -113,13 +128,17 @@ const MemorizationScreen: React.FC = () => {
         })
 
         // Get recent memorization sessions
-        const history = await recitationApi.getRecitationHistory(1, 10)
+        let history
+        try {
+          history = await recitationApi.getRecitationHistory(1, 10)
+        } catch (error) {
+          console.error('Failed to fetch recitation history:', error)
+          history = { data: [] }
+        }
 
-        // Group history by date and surah for recent sessions
+        // Process history data for recent sessions
         const sessions: MemorizationSession[] = []
-        if (history && history.data) {
-          // Process history data here (simplified)
-          // In a real app, you would properly aggregate sessions
+        if (history && Array.isArray(history.data)) {
           const recentSessions = history.data.slice(0, 5)
           for (const session of recentSessions) {
             sessions.push({
@@ -139,13 +158,17 @@ const MemorizationScreen: React.FC = () => {
         generateRecommendations(surahProgress)
       } catch (error) {
         console.error('Error loading user data:', error)
+        // Set default states to prevent UI errors
+        setUserProgress([])
+        setRecentSessions([])
+        setRecommendations([1, 36, 67, 78, 55]) // Default popular surahs
       } finally {
         setIsLoading(false)
       }
     }
 
     loadUserData()
-  }, [user])
+  }, [user, surahs])
 
   // Get surah name by ID
   const getSurahName = (surahId: number): string => {
@@ -155,12 +178,6 @@ const MemorizationScreen: React.FC = () => {
 
   // Generate personalized recommendations based on user progress
   const generateRecommendations = (progress: SurahProgress[]) => {
-    // Logic for recommendations could include:
-    // 1. Surahs that are close to completion (e.g., over 70%)
-    // 2. Surahs that haven't been reviewed recently
-    // 3. Surahs that match the user's difficulty preference
-    // 4. Popular or short surahs for beginners
-
     // Simple recommendation logic (can be enhanced)
     const recommended: number[] = []
 
@@ -302,7 +319,7 @@ const MemorizationScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-        {/* Header */}
+        {/* Header Section */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Quran Memorization</Text>
           <TouchableOpacity
@@ -327,7 +344,7 @@ const MemorizationScreen: React.FC = () => {
           </Text>
           <TouchableOpacity
             style={styles.viewProgressButton}
-            onPress={() => navigation.navigate('Progress', {})}
+            onPress={() => navigation.navigate('Progress')}
           >
             <Text style={styles.viewProgressButtonText}>
               View Detailed Progress
@@ -457,11 +474,7 @@ const MemorizationScreen: React.FC = () => {
 
               <TouchableOpacity
                 style={styles.viewAllActivityButton}
-                onPress={() =>
-                  navigation.navigate('Progress', {
-                    screen: 'RecitationHistory',
-                  })
-                }
+                onPress={() => navigation.navigate('RecitationHistory')}
               >
                 <Text style={styles.viewAllActivityText}>
                   View All Activity
@@ -711,7 +724,7 @@ const styles = StyleSheet.create({
     color: '#2E8B57',
     textAlign: 'center',
     marginVertical: 12,
-    fontFamily: 'KFGQPC Uthmanic Script HAFS', // Make sure this font is installed
+    fontFamily: 'KFGQPC Uthmanic Script HAFS',
   },
   startButtonContainer: {
     alignItems: 'center',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,
   Text,
@@ -88,47 +88,53 @@ const RecitationHistoryScreen: React.FC = () => {
     }
   }
 
-  // Play a recitation recording
-  const playRecording = async (session: RecitationSession) => {
-    try {
-      // Stop any currently playing sound
-      if (sound) {
-        await sound.stopAsync()
-        await sound.unloadAsync()
-        setSound(null)
-      }
-
-      // If we're already playing this recording, just stop
-      if (playingId === session.id) {
-        setPlayingId(null)
-        return
-      }
-
-      // If there's no recording URI, we can't play anything
-      if (!session.recordingUri) {
-        return
-      }
-
-      // Load and play the recording
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: session.recordingUri },
-        { shouldPlay: true },
-      )
-
-      setSound(newSound)
-      setPlayingId(session.id)
-
-      // When playback finishes, clean up
-      newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
-          setPlayingId(null)
+  //Memoize Play a recitation recording
+  const playRecording = useCallback(
+    async (session: RecitationSession) => {
+      try {
+        // Stop any currently playing sound
+        if (sound) {
+          await sound.stopAsync()
+          await sound.unloadAsync()
+          setSound(null)
         }
-      })
-    } catch (error) {
-      console.error('Failed to play recording:', error)
-      setPlayingId(null)
-    }
-  }
+
+        // If we're already playing this recording, just stop
+        if (playingId === session.id) {
+          setPlayingId(null)
+          return
+        }
+
+        // If there's no recording URI, we can't play anything
+        if (!session.recordingUri) {
+          return
+        }
+
+        // Load and play the recording
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: session.recordingUri },
+          { shouldPlay: true },
+        )
+
+        setSound(newSound)
+        setPlayingId(session.id)
+
+        // When playback finishes, clean up
+        newSound.setOnPlaybackStatusUpdate((status) => {
+          if (
+            status.isLoaded &&
+            'didJustFinish' in status &&
+            status.didJustFinish
+          ) {
+            setPlayingId(null)
+          }
+        })
+      } catch (error) {
+        console.error('Failed to play recording:', error)
+      }
+    },
+    [sound],
+  )
 
   // Format a date string
   const formatDate = (dateString: string) => {
@@ -165,66 +171,79 @@ const RecitationHistoryScreen: React.FC = () => {
     return '#F44336' // Red
   }
 
-  // Render a single recitation session item
-  const renderRecitationItem = ({ item }: { item: RecitationSession }) => (
-    <View style={styles.recitationItem}>
-      <View style={styles.recitationHeader}>
-        <View>
-          <Text style={styles.recitationSurah}>
-            {item.surahName} ({item.surahId}:{item.ayahNumber})
-          </Text>
-          <Text style={styles.recitationDate}>{formatDate(item.date)}</Text>
-        </View>
+  // memoized renderRecitationItem function
+  const renderRecitationItem = useCallback(
+    ({ item }: { item: RecitationSession }) => (
+      <View style={styles.recitationItem}>
+        <View style={styles.recitationHeader}>
+          <View>
+            <Text style={styles.recitationSurah}>
+              {item.surahName} ({item.surahId}:{item.ayahNumber})
+            </Text>
+            <Text style={styles.recitationDate}>{formatDate(item.date)}</Text>
+          </View>
 
-        <View
-          style={[
-            styles.scoreContainer,
-            { backgroundColor: `${getScoreColor(item.score)}20` },
-          ]}
-        >
-          <Ionicons
-            name={getScoreIcon(item.score) as any}
-            size={16}
-            color={getScoreColor(item.score)}
-            style={styles.scoreIcon}
-          />
-          <Text
-            style={[styles.scoreText, { color: getScoreColor(item.score) }]}
-          >
-            {Math.round(item.score)}%
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.recitationDetails}>
-        <Text style={styles.durationText}>
-          Duration: {formatDuration(item.duration)}
-        </Text>
-
-        {item.recordingUri && (
-          <TouchableOpacity
+          <View
             style={[
-              styles.playButton,
-              playingId === item.id && styles.playingButton,
+              styles.scoreContainer,
+              { backgroundColor: `${getScoreColor(item.score)}20` },
             ]}
-            onPress={() => playRecording(item)}
           >
             <Ionicons
-              name={playingId === item.id ? 'stop' : 'play'}
+              name={getScoreIcon(item.score) as any}
               size={16}
-              color="white"
+              color={getScoreColor(item.score)}
+              style={styles.scoreIcon}
             />
-            <Text style={styles.playButtonText}>
-              {playingId === item.id ? 'Stop' : 'Play'}
+            <Text
+              style={[styles.scoreText, { color: getScoreColor(item.score) }]}
+            >
+              {Math.round(item.score)}%
             </Text>
-          </TouchableOpacity>
-        )}
+          </View>
+        </View>
+
+        <View style={styles.recitationDetails}>
+          <Text style={styles.durationText}>
+            Duration: {formatDuration(item.duration)}
+          </Text>
+
+          {item.recordingUri && (
+            <TouchableOpacity
+              style={[
+                styles.playButton,
+                playingId === item.id && styles.playingButton,
+              ]}
+              onPress={() => playRecording(item)}
+            >
+              <Ionicons
+                name={playingId === item.id ? 'stop' : 'play'}
+                size={16}
+                color="white"
+              />
+              <Text style={styles.playButtonText}>
+                {playingId === item.id ? 'Stop' : 'Play'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-    </View>
+    ),
+    [
+      playingId,
+      playRecording,
+      formatDate,
+      getScoreColor,
+      getScoreIcon,
+      formatDuration,
+    ],
   )
 
-  // Render a loading indicator at the bottom when loading more items
-  const renderFooter = () => {
+  // Memoize the keyExtractor
+  const keyExtractor = useCallback((item: RecitationSession) => item.id, [])
+
+  // Memoize Render a loading indicator at the bottom when loading more items
+  const renderFooter = useCallback(() => {
     if (!isLoadingMore) return null
 
     return (
@@ -233,7 +252,7 @@ const RecitationHistoryScreen: React.FC = () => {
         <Text style={styles.footerText}>Loading more...</Text>
       </View>
     )
-  }
+  }, [isLoadingMore])
 
   return (
     <SafeAreaView style={styles.container}>
@@ -254,11 +273,16 @@ const RecitationHistoryScreen: React.FC = () => {
         <FlatList
           data={history}
           renderItem={renderRecitationItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={keyExtractor}
           contentContainerStyle={styles.listContent}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={renderFooter}
+          initialNumToRender={10}
+          maxToRenderPerBatch={5}
+          windowSize={3}
+          removeClippedSubviews={true}
+          updateCellsBatchingPeriod={50}
         />
       )}
     </SafeAreaView>
@@ -371,4 +395,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default RecitationHistoryScreen
+export default React.memo(RecitationHistoryScreen)

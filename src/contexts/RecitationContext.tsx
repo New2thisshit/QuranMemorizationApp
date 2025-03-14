@@ -72,6 +72,7 @@ export const RecitationProvider: React.FC<{ children: React.ReactNode }> = ({
       await newRecording.startAsync()
     } catch (error) {
       console.error('Failed to start recording:', error)
+      throw error // Re-throw to be handled by the component
     }
   }
 

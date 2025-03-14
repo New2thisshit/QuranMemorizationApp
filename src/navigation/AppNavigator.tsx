@@ -2,16 +2,6 @@ import React from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { Ionicons } from '@expo/vector-icons'
 
-import {
-  NavigationContainer,
-  NavigationProp,
-  useNavigation,
-} from '@react-navigation/native'
-import { MemorizationStackParamList } from '../types/navigation'
-
-// In your screen components:
-const navigation = useNavigation<NavigationProp<MemorizationStackParamList>>()
-
 // Import screens
 import HomeScreen from '../screens/home/HomeScreen'
 import MemorizationNavigator from './MemorizationNavigator'
@@ -19,7 +9,7 @@ import ProgressNavigator from './ProgressNavigator'
 import ProfileScreen from '../screens/home/ProfileScreen'
 
 // Define app tab param list
-type AppTabParamList = {
+export type AppTabParamList = {
   Home: undefined
   Memorize: undefined
   Progress: undefined

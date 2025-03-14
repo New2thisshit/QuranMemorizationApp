@@ -1,3 +1,4 @@
+// src/components/quran/RecitationRecorder.tsx
 import React, { useState, useEffect } from 'react'
 import {
   View,
@@ -5,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Audio } from 'expo-av'
@@ -21,7 +23,7 @@ const RecitationRecorder: React.FC<RecitationRecorderProps> = ({
     isRecording,
     recordingUri,
     isProcessing,
-    startRecording,
+    startRecording: contextStartRecording,
     stopRecording,
     processRecitation,
     playRecording,
@@ -29,23 +31,25 @@ const RecitationRecorder: React.FC<RecitationRecorderProps> = ({
   } = useRecitation()
 
   const [recordingDuration, setRecordingDuration] = useState(0)
-  const [timer, setTimer] = useState<NodeJS.Timeout | null>(null)
+  const [timer, setTimer] = useState<number | null>(null)
 
   // Start a timer when recording begins
   useEffect(() => {
     if (isRecording) {
-      const interval = setInterval(() => {
+      // Use window.setInterval to make it clear we're using the browser/RN version
+      const interval = window.setInterval(() => {
         setRecordingDuration((prev) => prev + 1)
       }, 1000)
       setTimer(interval)
     } else if (timer) {
-      clearInterval(timer)
+      // Clear the interval using window.clearInterval
+      window.clearInterval(timer)
       setTimer(null)
     }
 
     return () => {
       if (timer) {
-        clearInterval(timer)
+        window.clearInterval(timer)
       }
     }
   }, [isRecording])
@@ -59,9 +63,42 @@ const RecitationRecorder: React.FC<RecitationRecorderProps> = ({
       .padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
+  // Check and request permissions
+  const checkAndRequestPermissions = async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync()
+
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'This app needs microphone access to record your recitation.',
+          [{ text: 'OK' }],
+        )
+        return false
+      }
+      return true
+    } catch (error) {
+      console.error('Error requesting permissions:', error)
+      return false
+    }
+  }
+
+  // Handle starting the recording
   const handleStartRecording = async () => {
+    const hasPermission = await checkAndRequestPermissions()
+    if (!hasPermission) return
+
     setRecordingDuration(0)
-    await startRecording()
+
+    try {
+      await contextStartRecording()
+    } catch (error) {
+      console.error('Failed to start recording:', error)
+      Alert.alert(
+        'Recording Error',
+        'Could not start recording. Please try again.',
+      )
+    }
   }
 
   const handleStopRecording = async () => {

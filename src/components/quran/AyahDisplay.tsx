@@ -1,6 +1,9 @@
 import React from 'react'
+import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { Ayah } from '../../models/Surah'
+import { DisplayMode } from './MushafView'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 interface AyahDisplayProps {
   ayah: Ayah
@@ -12,6 +15,7 @@ interface AyahDisplayProps {
   showTranslation?: boolean
   showTransliteration?: boolean
   fontSize?: number
+  userLanguage?: string
 }
 
 const AyahDisplay: React.FC<AyahDisplayProps> = ({
@@ -21,9 +25,29 @@ const AyahDisplay: React.FC<AyahDisplayProps> = ({
   showTranslation = true,
   showTransliteration = false,
   fontSize = 24,
+  userLanguage = 'en',
 }) => {
   // Split the Arabic text into words for individual styling
   const arabicWords = ayah.text.split(' ')
+
+  const [displayMode, setDisplayMode] = useState<DisplayMode>(
+    DisplayMode.ARABIC_ONLY,
+  )
+
+  useEffect(() => {
+    const loadDisplayMode = async () => {
+      try {
+        const storedMode = await AsyncStorage.getItem('quran_display_mode')
+        if (storedMode) {
+          setDisplayMode(storedMode as DisplayMode)
+        }
+      } catch (error) {
+        console.error('Error loading display mode:', error)
+      }
+    }
+
+    loadDisplayMode()
+  }, [])
 
   // Function to determine if a word has a tajweed highlight
   const getWordHighlight = (index: number) => {
@@ -104,6 +128,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
+    alignSelf: 'flex-start',
+    marginTop: 4,
   },
   ayahNumber: {
     color: 'white',
@@ -111,11 +137,13 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
+    alignItems: 'flex-start',
   },
   arabicContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-end',
+    width: '100%',
     marginBottom: 8,
   },
   arabicText: {
@@ -123,16 +151,22 @@ const styles = StyleSheet.create({
     fontSize: 24,
     textAlign: 'right',
     color: '#333333',
+    lineHeight: 40,
   },
   transliteration: {
     fontSize: 16,
     color: '#555555',
-    marginBottom: 6,
+    marginBottom: 10,
+    width: '100%',
+    lineHeight: 24,
   },
   translation: {
     fontSize: 14,
     color: '#666666',
     fontStyle: 'italic',
+    width: '100%',
+    lineHeight: 20,
+    marginTop: 4,
   },
   // Tajweed highlight styles
   idghamHighlight: {

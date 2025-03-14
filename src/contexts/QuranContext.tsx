@@ -1,5 +1,14 @@
 import React, { createContext, useState, useContext, useEffect } from 'react'
+import * as NetInfoModule from '@react-native-community/netinfo'
 import * as quranApi from '../api/quran'
+// import {
+//   getAllSurahs,
+//   getSurah,
+//   getAyahAudio,
+//   searchQuran,
+//   // checkNetworkConnection,
+// } from '../api/quran'
+
 import { Surah, Ayah } from '../models/Surah'
 
 type QuranContextType = {
@@ -8,12 +17,19 @@ type QuranContextType = {
   currentAyah: Ayah | null
   isLoading: boolean
   error: string | null
+  isOnline: boolean
+  isAudioAvailable: boolean
   fetchSurahs: () => Promise<void>
   setSurah: (surahNumber: number) => Promise<void>
   setAyah: (ayahNumber: number) => void
   getNextAyah: () => Ayah | null
   getPreviousAyah: () => Ayah | null
+  audioUrl: string | null
+  loadAyahAudio: (surahNumber: number, ayahNumber: number) => Promise<void>
 }
+
+const NetInfo = NetInfoModule.default || NetInfoModule
+// const quranApi = quranApiModule.default || quranApiModule
 
 const QuranContext = createContext<QuranContextType | undefined>(undefined)
 
@@ -25,6 +41,25 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({
   const [currentAyah, setCurrentAyah] = useState<Ayah | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [isOnline, setIsOnline] = useState(true)
+  const [isAudioAvailable, setIsAudioAvailable] = useState(true)
+
+  // Monitor network connectivity
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsOnline(state.isConnected === true)
+    })
+
+    // Initial check
+    NetInfo.fetch().then((state) => {
+      setIsOnline(state.isConnected === true)
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [])
 
   const fetchSurahs = async () => {
     setIsLoading(true)
@@ -47,7 +82,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({
       // Find the surah from our array or fetch it if not loaded
       let surah = surahs.find((s) => s.number === surahNumber)
 
-      if (!surah) {
+      if (!surah || !surah.ayahs || surah.ayahs.length === 0) {
         surah = await quranApi.getSurah(surahNumber)
       }
 
@@ -73,9 +108,11 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({
       return
     }
 
-    const ayah = currentSurah.ayahs.find((a) => a.number === ayahNumber)
+    const ayah = currentSurah.ayahs.find((a) => a.numberInSurah === ayahNumber)
     if (ayah) {
       setCurrentAyah(ayah)
+      // Clear previous audio URL when changing ayahs
+      setAudioUrl(null)
     } else {
       setError(`Ayah ${ayahNumber} not found in current surah`)
     }
@@ -85,7 +122,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!currentSurah || !currentAyah) return null
 
     const currentIndex = currentSurah.ayahs.findIndex(
-      (a) => a.number === currentAyah.number,
+      (a) => a.numberInSurah === currentAyah.numberInSurah,
     )
     if (currentIndex < currentSurah.ayahs.length - 1) {
       return currentSurah.ayahs[currentIndex + 1]
@@ -99,7 +136,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!currentSurah || !currentAyah) return null
 
     const currentIndex = currentSurah.ayahs.findIndex(
-      (a) => a.number === currentAyah.number,
+      (a) => a.numberInSurah === currentAyah.numberInSurah,
     )
     if (currentIndex > 0) {
       return currentSurah.ayahs[currentIndex - 1]
@@ -109,6 +146,25 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({
     return null
   }
 
+  const loadAyahAudio = async (surahNumber: number, ayahNumber: number) => {
+    setIsLoading(true)
+    setError(null)
+    setAudioUrl(null)
+
+    try {
+      const url = await quranApi.getAyahAudio(surahNumber, ayahNumber)
+      setAudioUrl(url)
+      setIsAudioAvailable(true)
+    } catch (err) {
+      console.error('Error loading ayah audio:', err)
+      setError('Failed to load recitation audio')
+      setIsAudioAvailable(false)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Initial data loading
   useEffect(() => {
     fetchSurahs()
   }, [])
@@ -121,11 +177,15 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({
         currentAyah,
         isLoading,
         error,
+        isOnline,
+        isAudioAvailable,
         fetchSurahs,
         setSurah,
         setAyah,
         getNextAyah,
         getPreviousAyah,
+        audioUrl,
+        loadAyahAudio,
       }}
     >
       {children}

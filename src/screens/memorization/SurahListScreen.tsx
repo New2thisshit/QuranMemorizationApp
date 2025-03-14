@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,
   Text,
@@ -7,9 +7,23 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native'
-import { useNavigation } from '@react-navigation/native'
+import {
+  CompositeNavigationProp,
+  useNavigation,
+} from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'
+import { RootStackParamList } from '../../types/navigation'
+import { StackNavigationProp } from '@react-navigation/stack'
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs'
+import {
+  AppTabParamList,
+  MemorizationStackParamList,
+} from '../../types/navigation'
+
+// Components
+import OfflineNotice from '../../components/common/OfflineNotice'
 
 // Contexts
 import { useQuran } from '../../contexts/QuranContext'
@@ -17,12 +31,18 @@ import { useQuran } from '../../contexts/QuranContext'
 // Types
 import { Surah } from '../../models/Surah'
 
+type SurahListScreenNavigationProp = CompositeNavigationProp<
+  StackNavigationProp<MemorizationStackParamList, 'SurahList'>,
+  BottomTabNavigationProp<AppTabParamList>
+>
+
 const SurahListScreen: React.FC = () => {
-  const navigation = useNavigation()
-  const { surahs, isLoading, fetchSurahs } = useQuran()
+  const navigation = useNavigation<SurahListScreenNavigationProp>()
+  const { surahs, isLoading, fetchSurahs, error, isOnline } = useQuran()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [filteredSurahs, setFilteredSurahs] = useState<Surah[]>([])
+  const [refreshing, setRefreshing] = useState(false)
 
   // Filter surahs based on search query
   useEffect(() => {
@@ -51,37 +71,65 @@ const SurahListScreen: React.FC = () => {
     }
   }, [])
 
+  // Handle refresh
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await fetchSurahs()
+    setRefreshing(false)
+  }, [fetchSurahs])
+
   // Handle surah selection
+  // const handleSurahPress = useCallback(
+  //   (surah: Surah) => {
+  //     navigation.navigate('Memorize', {
+  //       screen: 'QuranView',
+  //       params: { surahId: surah.number },
+  //     })
+  //   },
+  //   [navigation],
+  // )
+
   const handleSurahPress = (surah: Surah) => {
     navigation.navigate('AyahList', { surahId: surah.number })
+    // Or if you want to go directly to QuranView (once navigation types are fixed):
+    // navigation.navigate('QuranView', { surahId: surah.number });
   }
 
   // Render a single surah item
-  const renderSurahItem = ({ item }: { item: Surah }) => (
-    <TouchableOpacity
-      style={styles.surahItem}
-      onPress={() => handleSurahPress(item)}
-    >
-      <View style={styles.surahNumberContainer}>
-        <Text style={styles.surahNumber}>{item.number}</Text>
-      </View>
+  const renderSurahItem = useCallback(
+    ({ item }: { item: Surah }) => (
+      <TouchableOpacity
+        style={styles.surahItem}
+        onPress={() => handleSurahPress(item)}
+      >
+        <View style={styles.surahNumberContainer}>
+          <Text style={styles.surahNumber}>{item.number}</Text>
+        </View>
 
-      <View style={styles.surahInfo}>
-        <Text style={styles.englishName}>{item.englishName}</Text>
-        <Text style={styles.translation}>{item.englishNameTranslation}</Text>
-        <Text style={styles.details}>
-          {item.revelationType} • {item.numberOfAyahs} Ayahs
-        </Text>
-      </View>
+        <View style={styles.surahInfo}>
+          <Text style={styles.englishName}>{item.englishName}</Text>
+          <Text style={styles.translation}>{item.englishNameTranslation}</Text>
+          <Text style={styles.details}>
+            {item.revelationType} • {item.numberOfAyahs} Ayahs
+          </Text>
+        </View>
 
-      <View style={styles.arabicNameContainer}>
-        <Text style={styles.arabicName}>{item.name}</Text>
-      </View>
-    </TouchableOpacity>
+        <View style={styles.arabicNameContainer}>
+          <Text style={styles.arabicName}>{item.name}</Text>
+        </View>
+      </TouchableOpacity>
+    ),
+    [handleSurahPress],
   )
+
+  // Stable keyExtractor function
+  const keyExtractor = useCallback((item: Surah) => item.number.toString(), [])
 
   return (
     <View style={styles.container}>
+      {/* Offline Notice */}
+      <OfflineNotice />
+
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Ionicons
@@ -105,20 +153,42 @@ const SurahListScreen: React.FC = () => {
           <ActivityIndicator size="large" color="#2E8B57" />
           <Text style={styles.loadingText}>Loading Surahs...</Text>
         </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color="#F44336" />
+          <Text style={styles.errorText}>
+            {isOnline
+              ? 'Could not load Surahs. Please try again.'
+              : "You're offline. Using cached data."}
+          </Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={filteredSurahs}
           renderItem={renderSurahItem}
-          keyExtractor={(item) => item.number.toString()}
+          keyExtractor={keyExtractor}
           contentContainerStyle={styles.listContent}
           initialNumToRender={10}
-          maxToRenderPerBatch={20}
-          windowSize={10}
+          maxToRenderPerBatch={10} // Reduce batch size for smoother scrolling
+          windowSize={5} // Render fewer items outside the visible area
+          removeClippedSubviews={true} // Detach off-screen views
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={['#2E8B57']}
+            />
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="search" size={48} color="#CCCCCC" />
               <Text style={styles.emptyText}>
-                No surahs found matching "{searchQuery}"
+                {searchQuery
+                  ? `No surahs found matching "${searchQuery}"`
+                  : 'No surahs available. Pull down to refresh.'}
               </Text>
             </View>
           }
@@ -224,6 +294,29 @@ const styles = StyleSheet.create({
     color: '#999999',
     textAlign: 'center',
   },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  errorText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#2E8B57',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: '500',
+  },
 })
 
-export default SurahListScreen
+export default React.memo(SurahListScreen) // Memoize the entire component

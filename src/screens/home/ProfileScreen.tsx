@@ -14,8 +14,13 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
+// Import the DisplayMode enum from MushafView
+import { DisplayMode } from '../../components/quran/MushafView'
+
 // Contexts
 import { useAuth } from '../../contexts/AuthContext'
+import { useNavigation, NavigationProp } from '@react-navigation/native'
+import { AppTabParamList } from '../../types/navigation'
 
 // Types
 type UserSettings = {
@@ -26,6 +31,14 @@ type UserSettings = {
   dailyReminderTime: string
   preferredReciter: string
   arabicFontSize: number
+  // New Quran display settings
+  quranDisplayMode: DisplayMode
+  useMushafView: boolean
+  showTajweedColors: boolean
+  nightMode: boolean
+  wordByWordTranslation: boolean
+  translationFontSize: number
+  transliterationFontSize: number
 }
 
 type Achievement = {
@@ -38,6 +51,9 @@ type Achievement = {
 
 const ProfileScreen: React.FC = () => {
   const { user, logout } = useAuth()
+  const navigation = useNavigation<NavigationProp<AppTabParamList>>()
+
+  const [showQuranSettings, setShowQuranSettings] = useState(false)
 
   const [settings, setSettings] = useState<UserSettings>({
     autoPlayRecitation: true,
@@ -47,6 +63,14 @@ const ProfileScreen: React.FC = () => {
     dailyReminderTime: '18:00',
     preferredReciter: 'Mishary Rashid Alafasy',
     arabicFontSize: 24,
+    // Initialize new Quran display settings
+    quranDisplayMode: DisplayMode.ARABIC_ONLY,
+    useMushafView: true,
+    showTajweedColors: true,
+    nightMode: false,
+    wordByWordTranslation: false,
+    translationFontSize: 16,
+    transliterationFontSize: 14,
   })
 
   const [achievements, setAchievements] = useState<Achievement[]>([])
@@ -74,10 +98,52 @@ const ProfileScreen: React.FC = () => {
     try {
       const updatedSettings = { ...settings, [key]: value }
       setSettings(updatedSettings)
+
+      // Save to your existing userSettings
       await AsyncStorage.setItem(
         'userSettings',
         JSON.stringify(updatedSettings),
       )
+
+      // Also save individual settings to their dedicated keys for MushafView component
+      switch (key) {
+        case 'quranDisplayMode':
+          await AsyncStorage.setItem('quran_display_mode', value)
+          break
+        case 'arabicFontSize':
+          await AsyncStorage.setItem('quran_font_size', value.toString())
+          break
+        case 'translationFontSize':
+          await AsyncStorage.setItem('translation_font_size', value.toString())
+          break
+        case 'transliterationFontSize':
+          await AsyncStorage.setItem(
+            'transliteration_font_size',
+            value.toString(),
+          )
+          break
+        case 'useMushafView':
+          await AsyncStorage.setItem('use_mushaf_mode', value.toString())
+          break
+        case 'showTajweedColors':
+          await AsyncStorage.setItem('show_tajweed_colors', value.toString())
+          break
+        case 'nightMode':
+          await AsyncStorage.setItem('night_mode', value.toString())
+          break
+        case 'autoPlayRecitation':
+          await AsyncStorage.setItem('auto_play_recitation', value.toString())
+          break
+        case 'preferredReciter':
+          await AsyncStorage.setItem('preferred_reciter', value)
+          break
+        case 'wordByWordTranslation':
+          await AsyncStorage.setItem(
+            'word_by_word_translation',
+            value.toString(),
+          )
+          break
+      }
     } catch (error) {
       console.error('Failed to save settings:', error)
     }
@@ -154,6 +220,20 @@ const ProfileScreen: React.FC = () => {
       day: 'numeric',
     })
   }
+  // Navigate to Quran Mushaf View
+  const goToMushafView = () => {
+    // Navigate to the Quran view screen with default surah 1
+    navigation.navigate('QuranView', { surahId: 1 })
+  }
+
+  // Show the Quran settings modal or navigate to settings page
+  const showQuranDisplaySettings = () => {
+    // If you want to use a modal:
+    // setShowQuranSettings(true)
+
+    // If you want to use a separate screen:
+    navigation.navigate('QuranSettings')
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -216,6 +296,23 @@ const ProfileScreen: React.FC = () => {
         {/* App Settings Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>App Settings</Text>
+          {/* Add a Quran Mushaf View button */}
+          <TouchableOpacity
+            style={styles.settingItemButton}
+            onPress={goToMushafView}
+          >
+            <Text style={styles.settingLabel}>Quran Mushaf View</Text>
+            <Ionicons name="book-outline" size={20} color="#2E8B57" />
+          </TouchableOpacity>
+
+          {/* Add Quran Display Settings button */}
+          <TouchableOpacity
+            style={styles.settingItemButton}
+            onPress={showQuranDisplaySettings}
+          >
+            <Text style={styles.settingLabel}>Quran Display Settings</Text>
+            <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
+          </TouchableOpacity>
 
           <View style={styles.settingItem}>
             <Text style={styles.settingLabel}>Show Translation</Text>
@@ -340,6 +437,22 @@ const ProfileScreen: React.FC = () => {
             <Text style={styles.versionText}>App Version: 1.0.0</Text>
           </View>
         </View>
+
+        {/* Quran Settings Modal (optional) */}
+        {/* If you prefer a modal approach instead of a separate screen */}
+        {/* 
+      <Modal
+        visible={showQuranSettings}
+        animationType="slide"
+        onRequestClose={() => setShowQuranSettings(false)}
+      >
+        <QuranSettingsContent 
+          settings={settings}
+          updateSetting={updateSetting}
+          onClose={() => setShowQuranSettings(false)}
+        />
+      </Modal>
+      */}
       </ScrollView>
     </SafeAreaView>
   )

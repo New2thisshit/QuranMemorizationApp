@@ -135,7 +135,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
         {/* Back to Login */}
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.navigate('Auth')}
+          onPress={() => navigation.navigate('AuthMain')}
         >
           <Text style={styles.backButtonText}>Back to Login</Text>
         </TouchableOpacity>

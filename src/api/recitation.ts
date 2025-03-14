@@ -1,4 +1,9 @@
+// src/api/recitation.ts
 import api from './auth'
+import * as mockApi from './mockApi'
+
+// Flag to use mock API instead of real API
+const USE_MOCK_API = true
 
 // Types for recitation progress
 type RecitationProgress = {
@@ -27,6 +32,12 @@ type RecitationStats = {
 // Save recitation progress for a specific ayah
 export const saveProgress = async (progress: RecitationProgress) => {
   try {
+    if (USE_MOCK_API) {
+      // Mock implementation - just log and return success
+      console.log('Mock saving recitation progress:', progress)
+      return { success: true }
+    }
+
     const response = await api.post('/recitations/progress', progress)
     return response.data
   } catch (error) {
@@ -38,17 +49,44 @@ export const saveProgress = async (progress: RecitationProgress) => {
 // Get user's recitation statistics
 export const getRecitationStats = async (): Promise<RecitationStats> => {
   try {
+    if (USE_MOCK_API) {
+      return await mockApi.getRecitationStats()
+    }
+
     const response = await api.get('/recitations/stats')
     return response.data
   } catch (error) {
     console.error('Get recitation stats API error:', error)
-    throw error
+    // Return mock data as fallback
+    return {
+      totalAyahsMemorized: 0,
+      averageScore: 0,
+      memorizedSurahs: [],
+      recentActivity: [],
+    }
   }
 }
 
 // Get user's progress for a specific surah
 export const getSurahProgress = async (surahId: number) => {
   try {
+    if (USE_MOCK_API) {
+      // Basic mock implementation
+      return {
+        surahId,
+        completionPercentage: 50,
+        ayahsProgress: Array.from({ length: 10 }, (_, i) => ({
+          ayahNumber: i + 1,
+          ayahId: i + 1,
+          status: i < 5 ? 'memorized' : 'learning',
+          lastScore: 80 + (i % 20),
+          reviewCount: 5 - (i % 5),
+          dateMemorized: i < 5 ? new Date().toISOString() : null,
+          lastReviewDate: new Date().toISOString(),
+        })),
+      }
+    }
+
     const response = await api.get(`/recitations/progress/surah/${surahId}`)
     return response.data
   } catch (error) {
@@ -63,6 +101,20 @@ export const analyzeRecitation = async (
   ayahId: string,
 ) => {
   try {
+    if (USE_MOCK_API) {
+      // Mock implementation for recitation analysis
+      await new Promise((resolve) => setTimeout(resolve, 1000)) // Simulate processing time
+
+      return {
+        transcription: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
+        confidence: 0.85,
+        correctWords: ['بِسْمِ', 'اللَّهِ', 'الرَّحْمَٰنِ', 'الرَّحِيمِ'],
+        incorrectWords: [],
+        missedWords: [],
+        accuracy: 95,
+      }
+    }
+
     // Create FormData to upload the audio file
     const formData = new FormData()
 
@@ -93,6 +145,10 @@ export const analyzeRecitation = async (
 // Get recitation history
 export const getRecitationHistory = async (page = 1, limit = 20) => {
   try {
+    if (USE_MOCK_API) {
+      return await mockApi.getRecitationHistory(page, limit)
+    }
+
     const response = await api.get('/recitations/history', {
       params: { page, limit },
     })

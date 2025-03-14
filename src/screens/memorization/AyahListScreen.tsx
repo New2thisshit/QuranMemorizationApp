@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import {
   View,
   Text,
@@ -102,13 +102,16 @@ const AyahListScreen: React.FC<AyahListScreenProps> = ({
     }
   }
 
-  // Handle ayah selection for recitation
-  const handleAyahPress = (ayah: Ayah) => {
-    navigation.navigate('Recite', {
-      ayahId: ayah.numberInSurah,
-      surahId: surahId,
-    })
-  }
+  // Handle ayah selection for recitation and memoize it
+  const handleAyahPress = useCallback(
+    (ayah: Ayah) => {
+      navigation.navigate('QuranView', {
+        surahId: surahId,
+        ayahId: ayah.numberInSurah,
+      })
+    },
+    [navigation, surahId],
+  )
 
   // Get the memorization status icon for an ayah
   const getStatusIcon = (ayah: Ayah) => {
@@ -134,31 +137,37 @@ const AyahListScreen: React.FC<AyahListScreenProps> = ({
   }
 
   // Render a single ayah item
-  const renderAyahItem = ({ item }: { item: Ayah }) => {
-    const progress = ayahProgress[item.numberInSurah]
+  const renderAyahItem = useCallback(
+    ({ item }: { item: Ayah }) => {
+      const progress = ayahProgress[item.numberInSurah]
 
-    return (
-      <TouchableOpacity
-        style={styles.ayahItemContainer}
-        onPress={() => handleAyahPress(item)}
-      >
-        <View style={styles.ayahStatusContainer}>
-          {getStatusIcon(item)}
-          {progress && (
-            <Text style={styles.ayahScore}>
-              {progress.lastScore ? `${Math.round(progress.lastScore)}%` : ''}
-            </Text>
-          )}
-        </View>
+      return (
+        <TouchableOpacity
+          style={styles.ayahItemContainer}
+          onPress={() => handleAyahPress(item)}
+        >
+          <View style={styles.ayahStatusContainer}>
+            {getStatusIcon(item)}
+            {progress && (
+              <Text style={styles.ayahScore}>
+                {progress.lastScore ? `${Math.round(progress.lastScore)}%` : ''}
+              </Text>
+            )}
+          </View>
 
-        <View style={styles.ayahContentContainer}>
-          <AyahDisplay ayah={item} showTranslation={true} fontSize={20} />
-        </View>
+          <View style={styles.ayahContentContainer}>
+            <AyahDisplay ayah={item} showTranslation={true} fontSize={20} />
+          </View>
 
-        <Ionicons name="chevron-forward" size={24} color="#CCCCCC" />
-      </TouchableOpacity>
-    )
-  }
+          <Ionicons name="chevron-forward" size={24} color="#CCCCCC" />
+        </TouchableOpacity>
+      )
+    },
+    [ayahProgress, getStatusIcon, handleAyahPress],
+  )
+
+  // Create a stable keyExtractor
+  const keyExtractor = useCallback((item: Ayah) => item.number.toString(), [])
 
   // Show juz information if available
   const renderJuzInfo = (juzNumber: number) => (
@@ -236,11 +245,13 @@ const AyahListScreen: React.FC<AyahListScreenProps> = ({
           <FlatList
             data={currentSurah.ayahs}
             renderItem={renderAyahItem}
-            keyExtractor={(item) => item.number.toString()}
+            keyExtractor={keyExtractor}
             contentContainerStyle={styles.listContent}
             initialNumToRender={10}
-            maxToRenderPerBatch={20}
-            windowSize={10}
+            maxToRenderPerBatch={5} // Reduce batch size
+            windowSize={3} // Reduce window size
+            removeClippedSubviews={true}
+            updateCellsBatchingPeriod={50} // Add delay between batch processing
           />
         </View>
       ) : (
@@ -418,4 +429,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default AyahListScreen
+export default React.memo(AyahListScreen)

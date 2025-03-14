@@ -1,39 +1,33 @@
+// src/navigation/RootNavigator.tsx - FIXED VERSION
 import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import { useAuth } from '../contexts/AuthContext'
-
-import {
-  NavigationContainer,
-  NavigationProp,
-  useNavigation,
-} from '@react-navigation/native'
-import { MemorizationStackParamList } from '../types/navigation'
-
-// In your screen components:
-const navigation = useNavigation<NavigationProp<MemorizationStackParamList>>()
+import { ActivityIndicator, View } from 'react-native'
 
 // Import navigators
 import AuthNavigator from './AuthNavigator'
 import AppNavigator from './AppNavigator'
 
-// Define root stack param list
-type RootStackParamList = {
-  Auth: undefined
-  App: undefined
-}
+// Import your navigation types
+import { RootStackParamList } from '../types/navigation'
 
 const Stack = createStackNavigator<RootStackParamList>()
 
-interface RootNavigatorProps {
-  initialRouteName: keyof RootStackParamList
-}
-
-const RootNavigator: React.FC<RootNavigatorProps> = ({ initialRouteName }) => {
+/**
+ * RootNavigator is the main navigator that decides whether to show
+ * the authentication screens or the main app screens based on the user's
+ * authentication state.
+ */
+const RootNavigator: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
     // Return a loading screen
-    return null
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#2E8B57" />
+      </View>
+    )
   }
 
   return (

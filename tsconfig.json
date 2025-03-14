@@ -1,6 +1,19 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    "skipLibCheck": true, // Add this line to skip checking library definition files
+    "types": [
+      "node",
+      "react",
+      "react-native",
+      "jest",
+      "@types/babel__core",
+      "@types/babel__generator",
+      "@types/babel__template",
+      "@types/babel__traverse",
+      "@types/hammerjs",
+      "@types/prop-types"
+    ]
   }
 }

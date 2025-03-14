@@ -1,0 +1,124 @@
+{
+  "resources": [
+    {
+      "id": "en-sahih-international",
+      "name": "Sahih International",
+      "englishName": "Sahih International",
+      "language": "en",
+      "type": "translation",
+      "author": "Umm Muhammad",
+      "size": 5242880,
+      "version": "1.0",
+      "lastUpdated": "2023-05-15",
+      "status": "not_available"
+    },
+    {
+      "id": "en-pickthall",
+      "name": "Pickthall",
+      "englishName": "Pickthall",
+      "language": "en",
+      "type": "translation",
+      "author": "Mohammed Marmaduke Pickthall",
+      "size": 4718592,
+      "version": "1.0",
+      "lastUpdated": "2023-05-15",
+      "status": "not_available"
+    },
+    {
+      "id": "en-yusuf-ali",
+      "name": "Yusuf Ali",
+      "englishName": "Yusuf Ali",
+      "language": "en",
+      "type": "translation",
+      "author": "Abdullah Yusuf Ali",
+      "size": 6291456,
+      "version": "1.0",
+      "lastUpdated": "2023-05-15",
+      "status": "not_available"
+    },
+    {
+      "id": "ar-mishary-rashid-alafasy",
+      "name": "Mishary Rashid Alafasy",
+      "englishName": "Mishary Rashid Alafasy",
+      "language": "ar",
+      "type": "recitation",
+      "author": "Mishary Rashid Alafasy",
+      "size": 1073741824,
+      "version": "1.0",
+      "lastUpdated": "2023-05-15",
+      "status": "not_available"
+    },
+    {
+      "id": "ar-abdul-basit-murattal",
+      "name": "Abdul Basit Murattal",
+      "englishName": "Abdul Basit Murattal",
+      "language": "ar",
+      "type": "recitation",
+      "author": "Abdul Basit Abdul Samad",
+      "size": 1073741824,
+      "version": "1.0",
+      "lastUpdated": "2023-05-15",
+      "status": "not_available"
+    },
+    {
+      "id": "en-tafsir-ibn-kathir",
+      "name": "Tafsir Ibn Kathir",
+      "englishName": "Tafsir Ibn Kathir",
+      "language": "en",
+      "type": "tafsir",
+      "author": "Ibn Kathir",
+      "size": 25165824,
+      "version": "1.0",
+      "lastUpdated": "2023-05-15",
+      "status": "not_available"
+    },
+    {
+      "id": "en-transliteration",
+      "name": "Latin Transliteration",
+      "englishName": "Latin Transliteration",
+      "language": "en",
+      "type": "translation",
+      "author": "Various",
+      "size": 3145728,
+      "version": "1.0",
+      "lastUpdated": "2023-05-15",
+      "status": "not_available"
+    },
+    {
+      "id": "fr-hamidullah",
+      "name": "Hamidullah",
+      "englishName": "Hamidullah",
+      "language": "fr",
+      "type": "translation",
+      "author": "Muhammad Hamidullah",
+      "size": 5242880,
+      "version": "1.0",
+      "lastUpdated": "2023-05-15",
+      "status": "not_available"
+    },
+    {
+      "id": "ur-ahmed-ali",
+      "name": "Ahmed Ali",
+      "englishName": "Ahmed Ali",
+      "language": "ur",
+      "type": "translation",
+      "author": "Ahmed Ali",
+      "size": 7340032,
+      "version": "1.0",
+      "lastUpdated": "2023-05-15",
+      "status": "not_available"
+    },
+    {
+      "id": "es-cortes",
+      "name": "Julio Cortés",
+      "englishName": "Julio Cortes",
+      "language": "es",
+      "type": "translation",
+      "author": "Julio Cortés",
+      "size": 5242880,
+      "version": "1.0",
+      "lastUpdated": "2023-05-15",
+      "status": "not_available"
+    }
+  ]
+}

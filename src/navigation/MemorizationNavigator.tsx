@@ -6,14 +6,11 @@ import MemorizationScreen from '../screens/memorization/MemorizationScreen'
 import ReciteScreen from '../screens/memorization/ReciteScreen'
 import SurahListScreen from '../screens/memorization/SurahListScreen'
 import AyahListScreen from '../screens/memorization/AyahListScreen'
+import QuranViewScreen from '../screens/memorization/QuranViewScreen'
+import QuranDisplaySettingsScreen from '../screens/settings/QuranDisplaySettingsScreen'
 
-// Define memorization stack param list
-type MemorizationStackParamList = {
-  MemorizationMain: undefined
-  SurahList: undefined
-  AyahList: { surahId: number }
-  Recite: { ayahId: number; surahId: number }
-}
+// Import types
+import { MemorizationStackParamList } from '../types/navigation'
 
 const Stack = createStackNavigator<MemorizationStackParamList>()
 
@@ -31,6 +28,17 @@ const MemorizationNavigator: React.FC = () => {
         },
       }}
     >
+      <Stack.Screen
+        name="QuranView"
+        component={QuranViewScreen}
+        options={{ title: 'Quran' }}
+      />
+      <Stack.Screen
+        name="QuranSettings"
+        component={QuranDisplaySettingsScreen}
+        options={{ title: 'Quran Display Settings' }}
+      />
+
       <Stack.Screen
         name="MemorizationMain"
         component={MemorizationScreen}

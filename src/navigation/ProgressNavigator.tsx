@@ -1,16 +1,6 @@
 import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 
-import {
-  NavigationContainer,
-  NavigationProp,
-  useNavigation,
-} from '@react-navigation/native'
-import { MemorizationStackParamList } from '../types/navigation'
-
-// In your screen components:
-const navigation = useNavigation<NavigationProp<MemorizationStackParamList>>()
-
 // Import screens
 import ProgressScreen from '../screens/progress/ProgressScreen'
 import StatsScreen from '../screens/progress/StatsScreen'
@@ -18,7 +8,7 @@ import RecitationHistoryScreen from '../screens/progress/RecitationHistoryScreen
 import SurahDetailScreen from '../screens/progress/SurahDetailScreen'
 
 // Define progress stack param list
-type ProgressStackParamList = {
+export type ProgressStackParamList = {
   ProgressMain: undefined
   Stats: undefined
   RecitationHistory: undefined

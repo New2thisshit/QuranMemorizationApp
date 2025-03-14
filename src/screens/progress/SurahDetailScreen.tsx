@@ -14,7 +14,7 @@ import { StackNavigationProp } from '@react-navigation/stack'
 import { Ionicons } from '@expo/vector-icons'
 
 // Contexts
-import { useQuran } from '../../contexts/QuranContext'
+import { useEnhancedQuran } from '../../contexts/EnhancedQuranContext'
 
 // API Services
 import * as recitationApi from '../../api/recitation'
@@ -52,7 +52,12 @@ const SurahDetailScreen: React.FC<SurahDetailScreenProps> = ({
   navigation,
 }) => {
   const { surahId } = route.params
-  const { surahs } = useQuran()
+  const {
+    surahs,
+    isLoading: isQuranLoading,
+    fetchSurahs,
+    isOnline,
+  } = useEnhancedQuran()
 
   const [isLoading, setIsLoading] = useState(true)
   const [surahDetails, setSurahDetails] = useState<any>(null)
@@ -60,6 +65,18 @@ const SurahDetailScreen: React.FC<SurahDetailScreenProps> = ({
   const [filter, setFilter] = useState<
     'all' | 'memorized' | 'learning' | 'new'
   >('all')
+
+  // Format a date string
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Never'
+
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  }
 
   // Load surah details and progress
   useEffect(() => {
@@ -120,16 +137,19 @@ const SurahDetailScreen: React.FC<SurahDetailScreenProps> = ({
     }
   }, [surahId, surahs, navigation])
 
-  // Format a date string
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'Never'
-
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })
+  // Add this to your component to show offline status if needed
+  const renderOfflineIndicator = () => {
+    if (!isOnline) {
+      return (
+        <View style={styles.offlineContainer}>
+          <Ionicons name="cloud-offline-outline" size={20} color="#F44336" />
+          <Text style={styles.offlineText}>
+            You're offline. Showing cached content.
+          </Text>
+        </View>
+      )
+    }
+    return null
   }
 
   // Filter ayahs based on selected filter
@@ -190,7 +210,7 @@ const SurahDetailScreen: React.FC<SurahDetailScreenProps> = ({
       onPress={() => {
         navigation.navigate('Memorize', {
           screen: 'Recite',
-          params: { surahId, ayahId: item.ayahId },
+          params: { surahId: surahId, ayahId: item.ayahId },
         })
       }}
     >
@@ -252,7 +272,7 @@ const SurahDetailScreen: React.FC<SurahDetailScreenProps> = ({
           onPress={() => {
             navigation.navigate('Memorize', {
               screen: 'Recite',
-              params: { surahId, ayahId: item.ayahId },
+              params: { surahId: surahId, ayahId: item.ayahId },
             })
           }}
         >
@@ -265,6 +285,7 @@ const SurahDetailScreen: React.FC<SurahDetailScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.container}>
+      {renderOfflineIndicator()}
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E8B57" />
@@ -462,6 +483,19 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     color: '#666666',
+  },
+  offlineContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    padding: 8,
+    margin: 8,
+    borderRadius: 4,
+  },
+  offlineText: {
+    color: '#F44336',
+    marginLeft: 8,
+    fontSize: 14,
   },
   surahHeader: {
     flexDirection: 'row',
